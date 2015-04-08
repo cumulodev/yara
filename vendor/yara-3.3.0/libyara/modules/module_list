@@ -1,7 +1,9 @@
 MODULE(tests)
 MODULE(pe)
 MODULE(elf)
-MODULE(math)
+
+// disable math module until I figured out why it won't statically link
+// MODULE(math)
 
 #ifdef CUCKOO
 MODULE(cuckoo)

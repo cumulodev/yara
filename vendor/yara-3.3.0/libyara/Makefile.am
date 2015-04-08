@@ -2,7 +2,8 @@
 MODULES =  modules/tests.c
 MODULES += modules/pe.c
 MODULES += modules/elf.c
-MODULES += modules/math.c
+# disable math module until I figured out why it won't statically link
+# MODULES += modules/math.c
 
 if CUCKOO
 MODULES += modules/cuckoo.c
