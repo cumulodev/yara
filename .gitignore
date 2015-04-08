@@ -1,0 +1,4 @@
+out
+vendor/yara-3.3.0/compile
+vendor/yara-3.3.0/libyara/modules/.dirstamp
+vendor/yara-3.3.0/libyara/yara.pc
