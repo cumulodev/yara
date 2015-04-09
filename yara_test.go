@@ -1,6 +1,7 @@
 package yara
 
 import (
+	"os"
 	"reflect"
 	"testing"
 )
@@ -34,8 +35,29 @@ func TestScanMem(t *testing.T) {
 
 	c.Destroy()
 
-	rules, err := engine.ScanMemory([]byte("rule and condition"))
-	assertEq(t, []string{"First", "Second"}, rules)
+	matches := []string{}
+	err = engine.ScanMemory([]byte("rule and condition"), func(rule *Rule) {
+		matches = append(matches, rule.Identifier)
+	})
+	assertEq(t, []string{"First", "Second"}, matches)
+	assertEq(t, nil, err)
+}
+
+func TestScanReader(t *testing.T) {
+	engine, err := LoadFromFile("rules/precompiled")
+	assertEq(t, nil, err)
+
+	file, err := os.Open("rules/recursion.yar")
+	assertEq(t, nil, err)
+
+	matches := []string{}
+	err = engine.Scan(file, func(rule *Rule) {
+		matches = append(matches, rule.Identifier)
+	})
+
+	file.Close()
+
+	assertEq(t, []string{"First", "Second"}, matches)
 	assertEq(t, nil, err)
 }
 
@@ -51,17 +73,24 @@ func TestScanFile(t *testing.T) {
 
 	c.Destroy()
 
-	rules, err := engine.ScanFile("rules/recursion.yar")
-	assertEq(t, []string{"First", "Second"}, rules)
+	matches := []string{}
+	err = engine.ScanFile("rules/recursion.yar", func(rule *Rule) {
+		matches = append(matches, rule.Identifier)
+	})
+	assertEq(t, []string{"First", "Second"}, matches)
 	assertEq(t, nil, err)
 }
 
 func TestLoadRule(t *testing.T) {
-	engine, err := LoadRules("rules/precompiled")
+	_, err := LoadFromFile("rules/precompiled")
+	assertEq(t, nil, err)
+}
+
+func TestSaveRule(t *testing.T) {
+	engine, err := LoadFromFile("rules/precompiled")
 	assertEq(t, nil, err)
 
-	rules, err := engine.ScanFile("rules/recursion.yar")
-	assertEq(t, []string{"First", "Second"}, rules)
+	err = engine.Save("rules/precompiled")
 	assertEq(t, nil, err)
 }
 

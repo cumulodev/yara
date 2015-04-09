@@ -1,5 +1,5 @@
 CWD = $(shell pwd)
-YARADIR = ${CWD}/vendor/yara-3.3.0
+YARADIR = ${CWD}/vendor/yara-master
 BUILDDIR = ${CWD}/out
 OBJ = ${BUILDDIR}/lib/libyara.a
 CGOFLAGS = -ldflags='-extldflags "-static"'

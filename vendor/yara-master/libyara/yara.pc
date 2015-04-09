@@ -1,0 +1,11 @@
+prefix=/home/tom/src/github.com/cumulodev/yara/out
+exec_prefix=/home/tom/src/github.com/cumulodev/yara/out
+includedir=/home/tom/src/github.com/cumulodev/yara/out/include
+libdir=/home/tom/src/github.com/cumulodev/yara/out/lib
+
+Name: yara
+Description: YARA library
+URL: http://plusvic.github.io/yara/
+Version: 3.3.0
+Cflags: -I${includedir}
+Libs: -L${libdir} -lyara

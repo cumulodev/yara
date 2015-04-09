@@ -3,15 +3,16 @@ package yara
 /*
 #include <stdio.h>
 #include <yara.h>
-
-int cgo_yr_callback(int msg, void* msg_data, void* user_data);
-const char* cgo_rule_identifier(YR_RULE* rule);
+#include "cgoyara.h"
 */
 import "C"
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
+	"os"
 	"unsafe"
 )
 
@@ -106,12 +107,19 @@ type Rules struct {
 	handle *C.YR_RULES
 }
 
-func LoadRules(path string) (*Rules, error) {
-	cpath := C.CString(path)
-	defer C.free(unsafe.Pointer(cpath))
+func LoadFromFile(path string) (*Rules, error) {
+	fh, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
 
+	defer fh.Close()
+	return LoadFromReader(fh)
+}
+
+func LoadFromReader(r io.Reader) (*Rules, error) {
 	var handle *C.YR_RULES
-	code := C.yr_rules_load(cpath, &handle)
+	code := C.yr_rules_load_stream(readStream(r), &handle)
 	if code != C.ERROR_SUCCESS {
 		return nil, newError(code)
 	}
@@ -120,10 +128,19 @@ func LoadRules(path string) (*Rules, error) {
 }
 
 func (r *Rules) Save(path string) error {
-	cpath := C.CString(path)
-	defer C.free(unsafe.Pointer(cpath))
+	fh, err := os.Create(path)
+	if err != nil {
+		return err
+	}
 
-	code := C.yr_rules_save(r.handle, cpath)
+	err = r.Write(fh)
+	fh.Close()
+
+	return err
+}
+
+func (r *Rules) Write(w io.Writer) error {
+	code := C.yr_rules_save_stream(r.handle, writeStream(w))
 	if code != C.ERROR_SUCCESS {
 		return newError(code)
 	}
@@ -131,45 +148,65 @@ func (r *Rules) Save(path string) error {
 	return nil
 }
 
-func (r *Rules) ScanMemory(buffer []byte) ([]string, error) {
-	data := &yrResult{
-		matches: []string{},
-	}
-	code := C.yr_rules_scan_mem(r.handle, (*C.uint8_t)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer)), 0, (C.YR_CALLBACK_FUNC)(unsafe.Pointer(C.cgo_yr_callback)), unsafe.Pointer(data), 0)
-	if code != C.ERROR_SUCCESS {
-		return nil, newError(code)
+// Scan should be avoided for now.
+func (r *Rules) Scan(reader io.Reader, fn Callback) error {
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
 	}
 
-	return data.matches, nil
+	return r.ScanMemory(data, fn)
 }
 
-func (r *Rules) ScanFile(path string) ([]string, error) {
+func (r *Rules) ScanMemory(buffer []byte, fn Callback) error {
+	data := (*C.uint8_t)(unsafe.Pointer(&buffer[0]))
+	size := C.size_t(len(buffer))
+	code := C.yr_rules_scan_mem(r.handle, data, size, 0, callback, unsafe.Pointer(&fn), 0)
+	if code != C.ERROR_SUCCESS {
+		return newError(code)
+	}
+
+	return nil
+}
+
+func (r *Rules) ScanFile(path string, fn Callback) error {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
-	data := &yrResult{
-		matches: []string{},
-	}
-	code := C.yr_rules_scan_file(r.handle, cpath, 0, (C.YR_CALLBACK_FUNC)(unsafe.Pointer(C.cgo_yr_callback)), unsafe.Pointer(data), 0)
+	code := C.yr_rules_scan_file(r.handle, cpath, 0, callback, unsafe.Pointer(&fn), 0)
 	if code != C.ERROR_SUCCESS {
-		return nil, newError(code)
+		return newError(code)
 	}
 
-	return data.matches, nil
+	return nil
 }
 
-//export cgo_yr_callback
-func cgo_yr_callback(msg C.int, msg_data unsafe.Pointer, user_data unsafe.Pointer) C.int {
-	if msg != C.CALLBACK_MSG_RULE_MATCHING {
-		return C.CALLBACK_CONTINUE
+type Rule struct {
+	Identifier string
+	Tags       []string
+	Metadata   map[string]string
+}
+
+func NewRule() *Rule {
+	return &Rule{
+		Metadata: make(map[string]string),
 	}
-
-	rule := (*C.YR_RULE)(msg_data)
-	user := (*yrResult)(user_data)
-	user.matches = append(user.matches, C.GoString(C.cgo_rule_identifier(rule)))
-	return C.CALLBACK_CONTINUE
 }
 
-type yrResult struct {
-	matches []string
+type Callback func(rule *Rule)
+
+func readStream(r io.Reader) *C.YR_STREAM {
+	stream := new(C.YR_STREAM)
+	stream.user_data = unsafe.Pointer(&r)
+	stream.read = (C.YR_STREAM_READ_FUNC)(C.stream_read)
+	stream.write = (C.YR_STREAM_WRITE_FUNC)(C.stream_write)
+	return stream
+}
+
+func writeStream(w io.Writer) *C.YR_STREAM {
+	stream := new(C.YR_STREAM)
+	stream.user_data = unsafe.Pointer(&w)
+	stream.read = (C.YR_STREAM_READ_FUNC)(C.stream_read)
+	stream.write = (C.YR_STREAM_WRITE_FUNC)(C.stream_write)
+	return stream
 }
