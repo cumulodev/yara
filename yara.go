@@ -9,10 +9,7 @@ import "C"
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
-	"os"
 	"unsafe"
 )
 
@@ -108,18 +105,11 @@ type Rules struct {
 }
 
 func LoadFromFile(path string) (*Rules, error) {
-	fh, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
 
-	defer fh.Close()
-	return LoadFromReader(fh)
-}
-
-func LoadFromReader(r io.Reader) (*Rules, error) {
 	var handle *C.YR_RULES
-	code := C.yr_rules_load_stream(readStream(r), &handle)
+	code := C.yr_rules_load(cpath, &handle)
 	if code != C.ERROR_SUCCESS {
 		return nil, newError(code)
 	}
@@ -128,34 +118,15 @@ func LoadFromReader(r io.Reader) (*Rules, error) {
 }
 
 func (r *Rules) Save(path string) error {
-	fh, err := os.Create(path)
-	if err != nil {
-		return err
-	}
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
 
-	err = r.Write(fh)
-	fh.Close()
-
-	return err
-}
-
-func (r *Rules) Write(w io.Writer) error {
-	code := C.yr_rules_save_stream(r.handle, writeStream(w))
+	code := C.yr_rules_save(r.handle, cpath)
 	if code != C.ERROR_SUCCESS {
 		return newError(code)
 	}
 
 	return nil
-}
-
-// Scan should be avoided for now.
-func (r *Rules) Scan(reader io.Reader, fn Callback) error {
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return err
-	}
-
-	return r.ScanMemory(data, fn)
 }
 
 func (r *Rules) ScanMemory(buffer []byte, fn Callback) error {
@@ -194,19 +165,3 @@ func NewRule() *Rule {
 }
 
 type Callback func(rule *Rule)
-
-func readStream(r io.Reader) *C.YR_STREAM {
-	stream := new(C.YR_STREAM)
-	stream.user_data = unsafe.Pointer(&r)
-	stream.read = (C.YR_STREAM_READ_FUNC)(C.stream_read)
-	stream.write = (C.YR_STREAM_WRITE_FUNC)(C.stream_write)
-	return stream
-}
-
-func writeStream(w io.Writer) *C.YR_STREAM {
-	stream := new(C.YR_STREAM)
-	stream.user_data = unsafe.Pointer(&w)
-	stream.read = (C.YR_STREAM_READ_FUNC)(C.stream_read)
-	stream.write = (C.YR_STREAM_WRITE_FUNC)(C.stream_write)
-	return stream
-}

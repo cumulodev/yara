@@ -18,10 +18,10 @@ ${OBJ}:
 	make -C ${YARADIR} install
 
 install: ${OBJ}
-	go install ${CGOFLAGS}
+	go install -a
 
 test: ${OBJ}
-	go test ${CGOFLAGS}
+	go test
 
 clean:
 	-make -C ${YARADIR} clean
