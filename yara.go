@@ -117,6 +117,10 @@ func LoadFromFile(path string) (*Rules, error) {
 	return &Rules{handle}, nil
 }
 
+func (r *Rules) Destroy() {
+	C.yr_rules_destroy(r.handle)
+}
+
 func (r *Rules) Save(path string) error {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
