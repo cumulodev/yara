@@ -4,7 +4,7 @@ package yara
 #include <stdio.h>
 #include <stdio.h>
 #include <yara.h>
-#include "cgoyara.h"
+#include "cgo.h"
 */
 import "C"
 
@@ -12,8 +12,6 @@ import (
 	"io"
 	"unsafe"
 )
-
-var callback = (C.YR_CALLBACK_FUNC)(unsafe.Pointer(C.yr_callback))
 
 //export cgo_stream_read
 func cgo_stream_read(ptr unsafe.Pointer, size C.size_t, count C.size_t, prw unsafe.Pointer) C.size_t {

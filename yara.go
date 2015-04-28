@@ -1,10 +1,8 @@
 package yara
 
-/*
-#include <stdio.h>
-#include <yara.h>
-#include "cgoyara.h"
-*/
+// #include <stdio.h>
+// #include <yara.h>
+// #include "cgo.h"
 import "C"
 
 import (
@@ -12,6 +10,8 @@ import (
 	"log"
 	"unsafe"
 )
+
+var callback = (C.YR_CALLBACK_FUNC)(unsafe.Pointer(C.callback))
 
 func init() {
 	code := C.yr_initialize()
@@ -76,13 +76,12 @@ func (c *Compiler) AddFile(ns, path string) error {
 }
 
 func (c *Compiler) AddString(ns, rule string) error {
-	crule := C.CString(rule)
 	cns := C.CString(ns)
-
-	defer C.free(unsafe.Pointer(crule))
-	defer C.free(unsafe.Pointer(cns))
-
+	crule := C.CString(rule)
 	errors := C.yr_compiler_add_string(c.handle, crule, cns)
+	C.free(unsafe.Pointer(crule))
+	C.free(unsafe.Pointer(cns))
+
 	if errors > 0 {
 		return fmt.Errorf("libyara: failed to compile rule")
 	}
@@ -107,11 +106,12 @@ type Rules struct {
 }
 
 func LoadFromFile(path string) (*Rules, error) {
-	cpath := C.CString(path)
-	defer C.free(unsafe.Pointer(cpath))
-
 	var handle *C.YR_RULES
+
+	cpath := C.CString(path)
 	code := C.yr_rules_load(cpath, &handle)
+	C.free(unsafe.Pointer(cpath))
+
 	if code != C.ERROR_SUCCESS {
 		return nil, newError(code)
 	}
@@ -127,9 +127,9 @@ func (r *Rules) Destroy() {
 
 func (r *Rules) Save(path string) error {
 	cpath := C.CString(path)
-	defer C.free(unsafe.Pointer(cpath))
-
 	code := C.yr_rules_save(r.handle, cpath)
+	C.free(unsafe.Pointer(cpath))
+
 	if code != C.ERROR_SUCCESS {
 		return newError(code)
 	}
@@ -138,37 +138,34 @@ func (r *Rules) Save(path string) error {
 }
 
 func (r *Rules) ScanMemory(buffer []byte) (string, error) {
-	result := C.yr_allocate_result()
+	result := C.allocate_result()
 
 	data := (*C.uint8_t)(unsafe.Pointer(&buffer[0]))
 	size := C.size_t(len(buffer))
 
 	code := C.yr_rules_scan_mem(r.handle, data, size, 0, callback, unsafe.Pointer(result), 0)
-	if code != C.ERROR_SUCCESS {
-		C.free(unsafe.Pointer(result))
-		return "", newError(code)
-	}
-
 	name := C.GoString(&result.name[0])
 	C.free(unsafe.Pointer(result))
+
+	if code != C.ERROR_SUCCESS {
+		return "", newError(code)
+	}
 
 	return name, nil
 }
 
 func (r *Rules) ScanFile(path string) (string, error) {
 	cpath := C.CString(path)
-	result := C.yr_allocate_result()
+	result := C.allocate_result()
 
 	code := C.yr_rules_scan_file(r.handle, cpath, 0, callback, unsafe.Pointer(result), 0)
+	name := C.GoString(&result.name[0])
+	C.free(unsafe.Pointer(result))
 	C.free(unsafe.Pointer(cpath))
 
 	if code != C.ERROR_SUCCESS {
-		C.free(unsafe.Pointer(result))
 		return "", newError(code)
 	}
-
-	name := C.GoString(&result.name[0])
-	C.free(unsafe.Pointer(result))
 
 	return name, nil
 }
@@ -184,5 +181,3 @@ func NewRule() *Rule {
 		Metadata: make(map[string]string),
 	}
 }
-
-type Callback func(rule *Rule)
