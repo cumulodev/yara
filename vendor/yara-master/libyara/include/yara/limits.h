@@ -22,7 +22,7 @@ limitations under the License.
 // object simultaneosly. This value is limited by the number of
 // bits in tidx_mask.
 
-#define MAX_THREADS 32
+#define MAX_THREADS 1024
 
 
 #ifndef MAX_PATH

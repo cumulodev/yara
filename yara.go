@@ -97,7 +97,9 @@ func (c *Compiler) Rules() (*Rules, error) {
 		return nil, newError(code)
 	}
 
-	return &Rules{handle}, nil
+	return &Rules{
+		handle: handle,
+	}, nil
 }
 
 type Rules struct {
@@ -114,7 +116,9 @@ func LoadFromFile(path string) (*Rules, error) {
 		return nil, newError(code)
 	}
 
-	return &Rules{handle}, nil
+	return &Rules{
+		handle: handle,
+	}, nil
 }
 
 func (r *Rules) Destroy() {
@@ -133,27 +137,40 @@ func (r *Rules) Save(path string) error {
 	return nil
 }
 
-func (r *Rules) ScanMemory(buffer []byte, fn Callback) error {
+func (r *Rules) ScanMemory(buffer []byte) (string, error) {
+	result := C.yr_allocate_result()
+
 	data := (*C.uint8_t)(unsafe.Pointer(&buffer[0]))
 	size := C.size_t(len(buffer))
-	code := C.yr_rules_scan_mem(r.handle, data, size, 0, callback, unsafe.Pointer(&fn), 0)
+
+	code := C.yr_rules_scan_mem(r.handle, data, size, 0, callback, unsafe.Pointer(result), 0)
 	if code != C.ERROR_SUCCESS {
-		return newError(code)
+		C.free(unsafe.Pointer(result))
+		return "", newError(code)
 	}
 
-	return nil
+	name := C.GoString(&result.name[0])
+	C.free(unsafe.Pointer(result))
+
+	return name, nil
 }
 
-func (r *Rules) ScanFile(path string, fn Callback) error {
+func (r *Rules) ScanFile(path string) (string, error) {
 	cpath := C.CString(path)
-	defer C.free(unsafe.Pointer(cpath))
+	result := C.yr_allocate_result()
 
-	code := C.yr_rules_scan_file(r.handle, cpath, 0, callback, unsafe.Pointer(&fn), 0)
+	code := C.yr_rules_scan_file(r.handle, cpath, 0, callback, unsafe.Pointer(result), 0)
+	C.free(unsafe.Pointer(cpath))
+
 	if code != C.ERROR_SUCCESS {
-		return newError(code)
+		C.free(unsafe.Pointer(result))
+		return "", newError(code)
 	}
 
-	return nil
+	name := C.GoString(&result.name[0])
+	C.free(unsafe.Pointer(result))
+
+	return name, nil
 }
 
 type Rule struct {
