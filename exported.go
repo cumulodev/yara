@@ -18,7 +18,7 @@ func cgo_stream_read(ptr unsafe.Pointer, size C.size_t, count C.size_t, prw unsa
 	r := *(*io.Reader)(prw)
 
 	buffer := make([]byte, int(size))
-	n, err := r.Read(buffer)
+	n, err := io.ReadAtLeast(r, buffer, int(size))
 	if err != nil {
 		return 0
 	}
