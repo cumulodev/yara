@@ -13,8 +13,8 @@ import (
 	"unsafe"
 )
 
-//export cgo_stream_read
-func cgo_stream_read(ptr unsafe.Pointer, size C.size_t, count C.size_t, prw unsafe.Pointer) C.size_t {
+//export goStreamRead
+func goStreamRead(ptr unsafe.Pointer, size C.size_t, count C.size_t, prw unsafe.Pointer) C.size_t {
 	r := *(*io.Reader)(prw)
 
 	buffer := make([]byte, int(size))
@@ -27,8 +27,8 @@ func cgo_stream_read(ptr unsafe.Pointer, size C.size_t, count C.size_t, prw unsa
 	return 1
 }
 
-//export cgo_stream_write
-func cgo_stream_write(ptr unsafe.Pointer, size C.size_t, count C.size_t, prw unsafe.Pointer) C.size_t {
+//export goStreamWrite
+func goStreamWrite(ptr unsafe.Pointer, size C.size_t, count C.size_t, prw unsafe.Pointer) C.size_t {
 	w := *(*io.Writer)(prw)
 
 	buffer := make([]byte, int(size))
@@ -40,4 +40,33 @@ func cgo_stream_write(ptr unsafe.Pointer, size C.size_t, count C.size_t, prw uns
 	}
 
 	return 1
+}
+
+//export goCallback
+func goCallback(p unsafe.Pointer, data *C.YR_RULE) C.int {
+	rule := NewRule()
+	C.translate_rule(unsafe.Pointer(rule), data)
+
+	f := (*(*Callback)(unsafe.Pointer(&p)))
+	return C.int(f(rule))
+}
+
+//export goRuleSetIdentifier
+func goRuleSetIdentifier(ptr unsafe.Pointer, identifier *C.char) {
+	rule := (*Rule)(ptr)
+	rule.Identifier = C.GoString(identifier)
+}
+
+//export goRuleAddTag
+func goRuleAddTag(ptr unsafe.Pointer, tag *C.char) {
+	rule := (*Rule)(ptr)
+	rule.Tags = append(rule.Tags, C.GoString(tag))
+}
+
+//export goRuleAddMetadata
+func goRuleAddMetadata(ptr unsafe.Pointer, pkey *C.char, pvalue *C.char) {
+	rule := (*Rule)(ptr)
+	key := C.GoString(pkey)
+	value := C.GoString(pvalue)
+	rule.Metadata[key] = value
 }

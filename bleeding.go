@@ -4,7 +4,7 @@ package yara
 
 // #include <stdio.h>
 // #include <yara.h>
-// #include "cgo.h"
+// #include "_cgo_export.h"
 import "C"
 
 import (
@@ -34,13 +34,13 @@ func (r *Rules) Write(w io.Writer) error {
 func readStream(r io.Reader) *C.YR_STREAM {
 	stream := new(C.YR_STREAM)
 	stream.user_data = unsafe.Pointer(&r)
-	stream.read = (C.YR_STREAM_READ_FUNC)(C.stream_read)
+	stream.read = (C.YR_STREAM_READ_FUNC)(C.goStreamRead)
 	return stream
 }
 
 func writeStream(w io.Writer) *C.YR_STREAM {
 	stream := new(C.YR_STREAM)
 	stream.user_data = unsafe.Pointer(&w)
-	stream.write = (C.YR_STREAM_WRITE_FUNC)(C.stream_write)
+	stream.write = (C.YR_STREAM_WRITE_FUNC)(C.goStreamWrite)
 	return stream
 }
