@@ -119,8 +119,11 @@ func TestMetadata(t *testing.T) {
 
 	c.Destroy()
 	err = engine.ScanFile("rules/metadata.yar", func(rule *Rule) CallbackStatus {
-		assertEq(t, "0.55", rule.Metadata["float"])
-		assertEq(t, "true", rule.Metadata["bool"])
+		assertEq(t, "abcdef", rule.Metadata["string"])
+		assertEq(t, true, rule.Metadata["t"])
+		assertEq(t, false, rule.Metadata["f"])
+		assertEq(t, 1, rule.Metadata["one"])
+		assertEq(t, 2, rule.Metadata["two"])
 		return Abort
 	})
 

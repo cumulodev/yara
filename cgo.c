@@ -22,6 +22,22 @@ void translate_rule(void* go, YR_RULE* c) {
 
 	YR_META* meta;
 	yr_rule_metas_foreach(c, meta) {
-		goRuleAddMetadata(go, (char *)meta->identifier, (char *)meta->string);
+		switch (meta->type) {
+			case META_TYPE_NULL:
+				// ignore NULL type metadata
+				break;
+
+			case META_TYPE_INTEGER:
+				goMetadataAddNumber(go, (char *)meta->identifier, meta->integer);
+				break;
+
+			case META_TYPE_BOOLEAN:
+				goMetadataAddBool(go, (char *)meta->identifier, meta->integer);
+				break;
+
+			case META_TYPE_STRING:
+				goMetadataAddString(go, (char *)meta->identifier, (char *)meta->string);
+				break;
+		}
 	}
 }

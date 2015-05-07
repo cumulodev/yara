@@ -1,7 +1,10 @@
 rule metadata {
 	meta:
-		float = "0.55"
-		bool = "true"
+		string = "abcdef"
+		t      = true
+		f      = false
+		one    = 1
+		two    = 2
 	
 	strings:
 		$ = "metadata"

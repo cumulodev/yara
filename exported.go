@@ -63,10 +63,24 @@ func goRuleAddTag(ptr unsafe.Pointer, tag *C.char) {
 	rule.Tags = append(rule.Tags, C.GoString(tag))
 }
 
-//export goRuleAddMetadata
-func goRuleAddMetadata(ptr unsafe.Pointer, pkey *C.char, pvalue *C.char) {
+//export goMetadataAddString
+func goMetadataAddString(ptr unsafe.Pointer, pkey *C.char, pvalue *C.char) {
 	rule := (*Rule)(ptr)
 	key := C.GoString(pkey)
 	value := C.GoString(pvalue)
 	rule.Metadata[key] = value
+}
+
+//export goMetadataAddNumber
+func goMetadataAddNumber(ptr unsafe.Pointer, pkey *C.char, value C.int) {
+	rule := (*Rule)(ptr)
+	key := C.GoString(pkey)
+	rule.Metadata[key] = int(value)
+}
+
+//export goMetadataAddBool
+func goMetadataAddBool(ptr unsafe.Pointer, pkey *C.char, value C.int) {
+	rule := (*Rule)(ptr)
+	key := C.GoString(pkey)
+	rule.Metadata[key] = (int(value) != 0)
 }

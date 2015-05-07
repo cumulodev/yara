@@ -179,12 +179,12 @@ func (r *Rules) ScanFile(path string, fn Callback) error {
 type Rule struct {
 	Identifier string
 	Tags       []string
-	Metadata   map[string]string
+	Metadata   map[string]interface{}
 }
 
 func NewRule() *Rule {
 	return &Rule{
-		Metadata: make(map[string]string),
+		Metadata: make(map[string]interface{}),
 	}
 }
 
