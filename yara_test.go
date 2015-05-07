@@ -107,6 +107,45 @@ func assertEq(t *testing.T, expected interface{}, actual interface{}) {
 	}
 }
 
+func TestMetadata(t *testing.T) {
+	c, err := NewCompiler()
+	assertEq(t, nil, err)
+
+	err = c.AddFile("", "rules/metadata.yar")
+	assertEq(t, nil, err)
+
+	engine, err := c.Rules()
+	assertEq(t, nil, err)
+
+	c.Destroy()
+	err = engine.ScanFile("rules/metadata.yar", func(rule *Rule) CallbackStatus {
+		assertEq(t, "0.55", rule.Metadata["float"])
+		assertEq(t, "true", rule.Metadata["bool"])
+		return Abort
+	})
+
+	assertEq(t, nil, err)
+}
+
+func TestTags(t *testing.T) {
+	c, err := NewCompiler()
+	assertEq(t, nil, err)
+
+	err = c.AddFile("", "rules/tags.yar")
+	assertEq(t, nil, err)
+
+	engine, err := c.Rules()
+	assertEq(t, nil, err)
+
+	c.Destroy()
+	err = engine.ScanFile("rules/tags.yar", func(rule *Rule) CallbackStatus {
+		assertEq(t, []string{"lol", "rofl"}, rule.Tags)
+		return Abort
+	})
+
+	assertEq(t, nil, err)
+}
+
 func TestStackGrowth(t *testing.T) {
 	c, err := NewCompiler()
 	assertEq(t, nil, err)
