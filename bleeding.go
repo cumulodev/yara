@@ -4,7 +4,7 @@ package yara
 
 // #include <stdio.h>
 // #include <yara.h>
-// #include "_cgo_export.h"
+// #include "cgo.h"
 import "C"
 
 import (
@@ -16,7 +16,7 @@ func LoadFromReader(r io.Reader) (*Rules, error) {
 	var handle *C.YR_RULES
 	code := C.yr_rules_load_stream(readStream(r), &handle)
 	if code != C.ERROR_SUCCESS {
-		return nil, newError(code)
+		return nil, Error(code)
 	}
 
 	return &Rules{handle}, nil
@@ -25,7 +25,7 @@ func LoadFromReader(r io.Reader) (*Rules, error) {
 func (r *Rules) Write(w io.Writer) error {
 	code := C.yr_rules_save_stream(r.handle, writeStream(w))
 	if code != C.ERROR_SUCCESS {
-		return newError(code)
+		return Error(code)
 	}
 
 	return nil
